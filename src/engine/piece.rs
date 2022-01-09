@@ -8,16 +8,28 @@ pub(super) struct Piece {
 
 impl Piece {}
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Kind {
-    Square,
-    Line,
+    O,
+    I,
     T,
+    L,
     J,
     S,
     Z,
 }
 
-impl Kind {}
+impl Kind {
+    pub const ALL: [Self; 7] = [
+        Self::O,
+        Self::I,
+        Self::T,
+        Self::L,
+        Self::J,
+        Self::S,
+        Self::Z,
+    ];
+}
 
 pub enum Rotation {
     N,
