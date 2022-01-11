@@ -6,6 +6,9 @@ use rand::{
 use self::piece::{Kind as PieceKind, Piece};
 
 mod piece;
+
+type Coordinate = cgmath::Vector2<usize>;
+type Offset = cgmath::Vector2<isize>;
 pub struct Engine {
     board: Board,
     bag: Vec<PieceKind>,
