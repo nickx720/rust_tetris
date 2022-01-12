@@ -1,6 +1,6 @@
 use cgmath::Zero;
 
-use super::{Coordinate, Offset};
+use super::{Board, Coordinate, Offset};
 
 pub(super) struct Piece {
     pub kind: Kind,
@@ -16,11 +16,17 @@ impl Piece {
         let offsets = self.kind.cells().map(self.rotator()).map(self.positioner());
         let mut coords = [Coordinate::zero(); Self::CELL_COUNT];
         for (Offset { x, y }, coord) in offsets.into_iter().zip(&mut coords) {
-            *coord = match (x.try_into(), y.try_into()) {
+            let new = match (x.try_into(), y.try_into()) {
                 (Ok(x), Ok(y)) => Coordinate { x, y },
                 _ => return None,
+            };
+            if Board::in_bounds(new) {
+                *coord = new;
+            } else {
+                return None;
             }
         }
+
         Some(coords)
     }
 
@@ -94,3 +100,20 @@ impl std::ops::Mul<Rotation> for Offset {
 }
 
 #[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn s_piece_positioning() {
+        let z = Piece {
+            kind: Kind::Z,
+            position: Offset::new(5, 6),
+            rotation: Rotation::W,
+        };
+
+        assert_eq!(
+            z.cells(),
+            Some([(4, 5), (4, 6), (5, 6), (5, 7)].map(Coordinate::from)),
+        )
+    }
+}
