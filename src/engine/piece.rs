@@ -1,6 +1,6 @@
-use cgmath::Zero;
+use cgmath::EuclideanSpace;
 
-use super::{Board, Coordinate, Offset};
+use super::{Coordinate, Matrix, Offset};
 
 pub(super) struct Piece {
     pub kind: Kind,
@@ -14,14 +14,12 @@ impl Piece {
     // todo is a divergent type, returns automatically any type
     pub fn cells(&self) -> Option<[Coordinate; Self::CELL_COUNT]> {
         let offsets = self.kind.cells().map(self.rotator()).map(self.positioner());
-        let mut coords = [Coordinate::zero(); Self::CELL_COUNT];
-        for (Offset { x, y }, coord) in offsets.into_iter().zip(&mut coords) {
-            let new = match (x.try_into(), y.try_into()) {
-                (Ok(x), Ok(y)) => Coordinate { x, y },
-                _ => return None,
-            };
-            if Board::in_bounds(new) {
-                *coord = new;
+        let mut coords = [Coordinate::origin(); Self::CELL_COUNT];
+        for (offset, coord_slot) in offsets.into_iter().zip(&mut coords) {
+            let positive_offset = offset.cast::<usize>()?;
+            let coord = Coordinate::from_vec(positive_offset);
+            if Matrix::in_bounds(coord) {
+                *coord_slot = coord;
             } else {
                 return None;
             }
@@ -30,9 +28,11 @@ impl Piece {
         Some(coords)
     }
 
-    fn rotator(&self) -> impl Fn(Offset) -> Offset {
-        let rotation = self.rotation;
-        move |cell| cell * rotation
+    fn rotator(&self) -> impl Fn(Offset) -> Offset + '_ {
+        |cell| match self.kind {
+            Kind::O => cell,
+            _ => cell * self.rotation,
+        }
     }
 
     fn positioner(&self) -> impl Fn(Offset) -> Offset {
@@ -66,13 +66,13 @@ impl Kind {
     // adding static references for references, restricts references of values to the static
     pub fn cells(&self) -> [Offset; Piece::CELL_COUNT] {
         match self {
-            Kind::O => &[(0, 0), (0, 1), (1, 0), (1, 1)],
-            Kind::I => &[(-1, 0), (0, 0), (1, 0), (2, 0)],
-            Kind::T => &[(-1, 0), (0, 0), (1, 0), (0, 1)],
-            Kind::L => &[(-1, 0), (0, 0), (1, 0), (1, 1)],
-            Kind::J => &[(-1, 1), (-1, 0), (0, 0), (1, 0)],
-            Kind::S => &[(-1, 0), (0, 0), (0, 1), (1, 1)],
-            Kind::Z => &[(-1, 1), (0, 1), (0, 0), (1, 0)],
+            Kind::O => &[(1, 1), (1, 2), (2, 1), (2, 2)],
+            Kind::I => &[(0, 2), (1, 2), (2, 2), (3, 2)],
+            Kind::T => &[(0, 1), (1, 1), (2, 1), (1, 2)],
+            Kind::L => &[(0, 1), (1, 1), (2, 1), (2, 2)],
+            Kind::J => &[(0, 2), (0, 1), (1, 1), (2, 1)],
+            Kind::S => &[(1, 1), (1, 1), (1, 2), (2, 2)],
+            Kind::Z => &[(0, 2), (1, 2), (1, 1), (2, 1)],
         }
         .map(Offset::from)
     }

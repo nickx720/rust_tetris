@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use rand::{
     prelude::{SliceRandom, ThreadRng},
     thread_rng,
@@ -7,10 +9,10 @@ use self::piece::{Kind as PieceKind, Piece};
 
 mod piece;
 
-type Coordinate = cgmath::Vector2<usize>;
+type Coordinate = cgmath::Point2<usize>;
 type Offset = cgmath::Vector2<isize>;
 pub struct Engine {
-    board: Board,
+    matrix: Matrix,
     bag: Vec<PieceKind>,
     rng: ThreadRng,
     cursor: Option<Piece>,
@@ -19,7 +21,7 @@ pub struct Engine {
 impl Engine {
     pub fn new() -> Self {
         Engine {
-            board: Board::blank(),
+            matrix: Matrix::blank(),
             bag: Vec::new(),
             rng: thread_rng(),
             cursor: None,
@@ -41,16 +43,16 @@ impl Engine {
             .take()
             .expect("Called place_cursor without a cursor");
         for coord in cursor.cells().expect("Cursor was out of bounds") {
-            let cell: &mut bool = self.board.get_mut(coord).unwrap();
+            let cell = &mut self.matrix[coord];
             debug_assert_eq!(*cell, false);
             *cell = true;
         }
     }
 }
 
-struct Board([bool; Self::SIZE]);
+struct Matrix([bool; Self::SIZE]);
 
-impl Board {
+impl Matrix {
     const WIDTH: usize = 10;
     const HEIGHT: usize = 20;
     const SIZE: usize = Self::WIDTH * Self::HEIGHT;
@@ -66,7 +68,18 @@ impl Board {
     fn blank() -> Self {
         Self([false; Self::SIZE])
     }
-    fn get_mut(&mut self, coord: Coordinate) -> Option<&mut bool> {
-        Self::in_bounds(coord).then(|| &mut self.0[Self::indexing(coord)])
+}
+
+impl Index<Coordinate> for Matrix {
+    type Output = bool;
+    fn index(&self, coord: Coordinate) -> &Self::Output {
+        assert!(Self::in_bounds(coord));
+        &self.0[Self::indexing(coord)]
+    }
+}
+impl IndexMut<Coordinate> for Matrix {
+    fn index_mut(&mut self, coord: Coordinate) -> &mut Self::Output {
+        assert!(Self::in_bounds(coord));
+        &mut self.0[Self::indexing(coord)]
     }
 }
