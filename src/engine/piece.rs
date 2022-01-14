@@ -1,7 +1,8 @@
-use cgmath::EuclideanSpace;
+use cgmath::{EuclideanSpace, Zero};
 
 use super::{Coordinate, Matrix, Offset};
 
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub(super) struct Piece {
     pub kind: Kind,
     pub position: Offset,
@@ -11,6 +12,12 @@ pub(super) struct Piece {
 impl Piece {
     const CELL_COUNT: usize = 4;
 
+    pub fn moved(&self, offset: Offset) -> Self {
+        Self {
+            position: self.position + offset,
+            ..*self
+        }
+    }
     // todo is a divergent type, returns automatically any type
     pub fn cells(&self) -> Option<[Coordinate; Self::CELL_COUNT]> {
         let offsets = self.kind.cells().map(self.rotator()).map(self.positioner());
@@ -31,7 +38,10 @@ impl Piece {
     fn rotator(&self) -> impl Fn(Offset) -> Offset + '_ {
         |cell| match self.kind {
             Kind::O => cell,
-            _ => cell * self.rotation,
+            _ => {
+                let grid_offset = self.rotation.intrinsic_offset() * (self.kind.grid_size() - 1);
+                cell * self.rotation + grid_offset
+            }
         }
     }
 
@@ -76,6 +86,13 @@ impl Kind {
         }
         .map(Offset::from)
     }
+
+    fn grid_size(&self) -> isize {
+        match self {
+            Kind::I => 4,
+            _ => 3,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -86,15 +103,26 @@ pub enum Rotation {
     W,
 }
 
+impl Rotation {
+    fn intrinsic_offset(&self) -> Offset {
+        match self {
+            Self::N => Offset::zero(),
+            Self::E => Offset::new(0, 1),
+            Self::S => Offset::new(1, 1),
+            Self::W => Offset::new(1, 0),
+        }
+    }
+}
+
 impl std::ops::Mul<Rotation> for Offset {
     type Output = Self;
 
     fn mul(self, rotation: Rotation) -> Self::Output {
         match rotation {
             Rotation::N => self,
-            Rotation::S => Offset::new(-self.x, -self.y),
-            Rotation::E => Offset::new(self.y, -self.x),
-            Rotation::W => Offset::new(-self.y, self.x),
+            Rotation::S => Self::new(-self.x, -self.y),
+            Rotation::E => Self::new(self.y, -self.x),
+            Rotation::W => Self::new(-self.y, self.x),
         }
     }
 }
@@ -113,7 +141,7 @@ mod test {
 
         assert_eq!(
             z.cells(),
-            Some([(4, 5), (4, 6), (5, 6), (5, 7)].map(Coordinate::from)),
+            Some([(5, 6), (5, 7), (6, 7), (6, 8)].map(Coordinate::from)),
         )
     }
 }

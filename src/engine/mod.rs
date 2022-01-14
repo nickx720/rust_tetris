@@ -11,6 +11,22 @@ mod piece;
 
 type Coordinate = cgmath::Point2<usize>;
 type Offset = cgmath::Vector2<isize>;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MoveKind {
+    Left,
+    Right,
+}
+
+impl MoveKind {
+    fn offset(&self) -> Offset {
+        match self {
+            MoveKind::Left => Offset::new(-1, 0),
+            MoveKind::Right => Offset::new(1, 0),
+        }
+    }
+}
+
 pub struct Engine {
     matrix: Matrix,
     bag: Vec<PieceKind>,
@@ -47,6 +63,15 @@ impl Engine {
             debug_assert_eq!(*cell, false);
             *cell = true;
         }
+    }
+    fn move_cursor(&mut self, kind: MoveKind) -> Result<(), ()> // Ok(()) , Err(())
+    {
+        let cursor = match self.cursor.as_mut() {
+            Some(cursor) => cursor,
+            None => return Ok(()),
+        };
+        kind.offset();
+        Ok(())
     }
 }
 
