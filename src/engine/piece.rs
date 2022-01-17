@@ -12,7 +12,7 @@ pub(super) struct Piece {
 impl Piece {
     const CELL_COUNT: usize = 4;
 
-    pub fn moved(&self, offset: Offset) -> Self {
+    pub fn moved_by(&self, offset: Offset) -> Self {
         Self {
             position: self.position + offset,
             ..*self
@@ -25,7 +25,7 @@ impl Piece {
         for (offset, coord_slot) in offsets.into_iter().zip(&mut coords) {
             let positive_offset = offset.cast::<usize>()?;
             let coord = Coordinate::from_vec(positive_offset);
-            if Matrix::in_bounds(coord) {
+            if Matrix::valid_coord(coord) {
                 *coord_slot = coord;
             } else {
                 return None;

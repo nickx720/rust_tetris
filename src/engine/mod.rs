@@ -58,20 +58,30 @@ impl Engine {
             .cursor
             .take()
             .expect("Called place_cursor without a cursor");
-        for coord in cursor.cells().expect("Cursor was out of bounds") {
-            let cell = &mut self.matrix[coord];
-            debug_assert_eq!(*cell, false);
-            *cell = true;
+
+        debug_assert!(
+            self.matrix.is_placeable(&cursor),
+            "The cursor was placed in an unplaceable location {:?}",
+            cursor
+        );
+
+        for coord in cursor.cells().unwrap() {
+            self.matrix[coord] = true;
         }
     }
+
     fn move_cursor(&mut self, kind: MoveKind) -> Result<(), ()> // Ok(()) , Err(())
     {
         let cursor = match self.cursor.as_mut() {
             Some(cursor) => cursor,
             None => return Ok(()),
         };
-        kind.offset();
-        Ok(())
+
+        let new = cursor.moved_by(kind.offset());
+        if self.matrix.is_clipping(&new) {
+            return Err(());
+        }
+        Ok(self.cursor = Some(new))
     }
 }
 
@@ -81,6 +91,14 @@ impl Matrix {
     const WIDTH: usize = 10;
     const HEIGHT: usize = 20;
     const SIZE: usize = Self::WIDTH * Self::HEIGHT;
+
+    fn on_matrix(coord: Coordinate) -> bool {
+        Self::valid_coord(coord) && coord.y < Self::HEIGHT
+    }
+
+    fn valid_coord(coord: Coordinate) -> bool {
+        coord.x < Self::WIDTH
+    }
 
     fn in_bounds(Coordinate { x, y }: Coordinate) -> bool {
         x < Self::WIDTH && y < Self::HEIGHT
@@ -93,18 +111,37 @@ impl Matrix {
     fn blank() -> Self {
         Self([false; Self::SIZE])
     }
+    fn is_clipping(&self, piece: &Piece) -> bool {
+        let cells = match piece.cells() {
+            Some(value) => value,
+            None => return false,
+        };
+        cells
+            .into_iter()
+            .all(|coord| !Matrix::on_matrix(coord) || self[coord] == false)
+    }
+
+    fn is_placeable(&self, piece: &Piece) -> bool {
+        let cells = match piece.cells() {
+            Some(value) => value,
+            None => return false,
+        };
+        cells
+            .into_iter()
+            .all(|coord| Matrix::on_matrix(coord) && self[coord] == false)
+    }
 }
 
 impl Index<Coordinate> for Matrix {
     type Output = bool;
     fn index(&self, coord: Coordinate) -> &Self::Output {
-        assert!(Self::in_bounds(coord));
+        assert!(Self::on_matrix(coord));
         &self.0[Self::indexing(coord)]
     }
 }
 impl IndexMut<Coordinate> for Matrix {
     fn index_mut(&mut self, coord: Coordinate) -> &mut Self::Output {
-        assert!(Self::in_bounds(coord));
+        assert!(Self::on_matrix(coord));
         &mut self.0[Self::indexing(coord)]
     }
 }
