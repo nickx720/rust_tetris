@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![feature(bool_to_option)]
 use engine::Engine;
 use interface::Interface;
 

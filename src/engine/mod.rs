@@ -65,8 +65,9 @@ impl Engine {
             cursor
         );
 
+        let color = cursor.kind.color();
         for coord in cursor.cells().unwrap() {
-            self.matrix[coord] = true;
+            self.matrix[coord] = Some(color);
         }
     }
 
@@ -83,9 +84,46 @@ impl Engine {
         }
         Ok(self.cursor = Some(new))
     }
+
+    fn tick_down(&mut self) {
+        // try to move it down, if it can't , it will return error
+        self.cursor = Some(self.ticked_down_cursor().unwrap());
+    }
+
+    fn cursor_has_hit_buttom(&self) -> bool {
+        self.cursor.is_some() && self.ticked_down_cursor().is_none()
+    }
+
+    fn ticked_down_cursor(&self) -> Option<Piece> {
+        let cursor = match self.cursor {
+            Some(value) => value,
+            None => return None,
+        };
+        let new = cursor.moved_by(Offset::new(0, -1));
+        (!self.matrix.is_clipping(&new)).then_some(new)
+    }
+
+    fn hard_drop(&mut self) {
+        // move cursor all the way down
+        while let Some(new) = self.ticked_down_cursor() {
+            self.cursor = Some(new);
+        }
+        // place cursor
+        self.place_cursor();
+    }
 }
 
-struct Matrix([bool; Self::SIZE]);
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Color {
+    Yellow,
+    Cyan,
+    Purple,
+    Orange,
+    Blue,
+    Green,
+    Red,
+}
+struct Matrix([Option<Color>; Self::SIZE]);
 
 impl Matrix {
     const WIDTH: usize = 10;
@@ -109,16 +147,16 @@ impl Matrix {
     }
 
     fn blank() -> Self {
-        Self([false; Self::SIZE])
+        Self([None; Self::SIZE])
     }
     fn is_clipping(&self, piece: &Piece) -> bool {
         let cells = match piece.cells() {
             Some(value) => value,
-            None => return false,
+            None => return true,
         };
         cells
             .into_iter()
-            .all(|coord| !Matrix::on_matrix(coord) || self[coord] == false)
+            .any(|coord| !Matrix::on_matrix(coord) || self[coord].is_some())
     }
 
     fn is_placeable(&self, piece: &Piece) -> bool {
@@ -128,12 +166,12 @@ impl Matrix {
         };
         cells
             .into_iter()
-            .all(|coord| Matrix::on_matrix(coord) && self[coord] == false)
+            .all(|coord| Matrix::on_matrix(coord) && self[coord].is_none())
     }
 }
 
 impl Index<Coordinate> for Matrix {
-    type Output = bool;
+    type Output = Option<Color>;
     fn index(&self, coord: Coordinate) -> &Self::Output {
         assert!(Self::on_matrix(coord));
         &self.0[Self::indexing(coord)]
