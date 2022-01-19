@@ -100,7 +100,11 @@ impl Engine {
             None => return None,
         };
         let new = cursor.moved_by(Offset::new(0, -1));
-        (!self.matrix.is_clipping(&new)).then_some(new)
+        if !self.matrix.is_clipping(&new) {
+            Some(new)
+        } else {
+            None
+        }
     }
 
     fn hard_drop(&mut self) {
