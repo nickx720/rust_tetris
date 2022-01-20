@@ -1,6 +1,6 @@
 use crate::engine::Engine;
 use cgmath::Vector2;
-use sdl2::{event::Event, pixels::Color};
+use sdl2::{event::Event, pixels::Color, rect::Rect};
 
 const INIT_SIZE: Vector2<u32> = Vector2::new(1024, 1024);
 const BACKGROUND_COLOR: Color = Color::RGB(0x10, 0x10, 0x18);
@@ -39,6 +39,21 @@ pub fn run(_engine: Engine) {
         canvas.clear();
 
         // Draw graphics
+        let ui_square = {
+            let Vector2 { x, y } = Vector2::from(canvas.viewport().size())
+                .cast::<i32>()
+                .unwrap();
+            if x > y {
+                let margin = (x / 2) - (y / 2);
+                Rect::new(margin, 0, y as u32, y as u32)
+            } else {
+                let margin = (y / 2) - (x / 2);
+                Rect::new(0, margin, x as u32, x as u32)
+            }
+        };
+
+        canvas.set_draw_color(Color::WHITE);
+        canvas.fill_rect(ui_square).unwrap();
         canvas.present();
     }
 }
