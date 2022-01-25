@@ -1,3 +1,4 @@
+use cgmath::EuclideanSpace;
 use std::ops::{Index, IndexMut};
 
 use rand::{
@@ -115,6 +116,15 @@ impl Engine {
         // place cursor
         self.place_cursor();
     }
+
+    // _ in iter() means new lifetime
+    // _ as return means deduced life time
+    fn iter(&self) -> CellIter<'_> {
+        CellIter {
+            position: Coordinate::origin(),
+            cells: self.matrix.0.iter(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -127,11 +137,11 @@ pub enum Color {
     Green,
     Red,
 }
-struct Matrix([Option<Color>; Self::SIZE]);
+pub struct Matrix([Option<Color>; Self::SIZE]);
 
 impl Matrix {
-    const WIDTH: usize = 10;
-    const HEIGHT: usize = 20;
+    pub const WIDTH: usize = 10;
+    pub const HEIGHT: usize = 20;
     const SIZE: usize = Self::WIDTH * Self::HEIGHT;
 
     fn on_matrix(coord: Coordinate) -> bool {
@@ -185,5 +195,26 @@ impl IndexMut<Coordinate> for Matrix {
     fn index_mut(&mut self, coord: Coordinate) -> &mut Self::Output {
         assert!(Self::on_matrix(coord));
         &mut self.0[Self::indexing(coord)]
+    }
+}
+
+pub struct CellIter<'matrix> {
+    position: Coordinate,
+    cells: ::std::slice::Iter<'matrix, Option<Color>>,
+}
+
+impl<'matrix> Iterator for CellIter<'matrix> {
+    type Item = (Coordinate, &'matrix Option<Color>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(cell) = self.cells.next() {
+            let coord = self.position;
+
+            // increment position
+            self.position.x += 1;
+            self.position.x %= Matrix::WIDTH;
+            return Some((coord, cell));
+        }
+        None
     }
 }

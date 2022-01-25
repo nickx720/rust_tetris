@@ -1,10 +1,11 @@
-use crate::engine::Engine;
+use crate::engine::{Engine, Matrix};
 use cgmath::Vector2;
 use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas};
 
 const INIT_SIZE: Vector2<u32> = Vector2::new(1024, 1024);
 const BACKGROUND_COLOR: Color = Color::RGB(0x10, 0x10, 0x18);
-const MATRIX_COLOR: Color = Color::RGB(0x66, 0x77, 0x77);
+const PLACEHOLDER_1: Color = Color::RGB(0x66, 0x77, 0x77);
+const PLACEHOLDER_2: Color = Color::RGB(0x66, 0x77, 0x77);
 
 pub fn run(_engine: Engine) {
     let sdl = sdl2::init().expect("Failed to initialise SDL2");
@@ -127,11 +128,17 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>) {
         rect
     };
 
-    canvas.set_draw_color(MATRIX_COLOR);
+    canvas.set_draw_color(PLACEHOLDER_1);
     canvas.fill_rect(matrix).unwrap();
     canvas.fill_rect(up_next).unwrap();
     canvas.fill_rect(hold).unwrap();
     canvas.fill_rect(queue).unwrap();
     canvas.fill_rect(score).unwrap();
+
+    for cell_x in 0..Matrix::WIDTH {
+        for cell_y in 0..Matrix::HEIGHT {
+            todo!()
+        }
+    }
     canvas.present();
 }
