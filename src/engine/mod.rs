@@ -1,4 +1,5 @@
 use cgmath::EuclideanSpace;
+use geometry::GridIncrement;
 use std::ops::{Index, IndexMut};
 
 use rand::{
@@ -8,6 +9,7 @@ use rand::{
 
 use self::piece::{Kind as PieceKind, Piece};
 
+mod geometry;
 mod piece;
 
 type Coordinate = cgmath::Point2<usize>;
@@ -119,7 +121,7 @@ impl Engine {
 
     // _ in iter() means new lifetime
     // _ as return means deduced life time
-    fn iter(&self) -> CellIter<'_> {
+    pub fn cells(&self) -> CellIter<'_> {
         CellIter {
             position: Coordinate::origin(),
             cells: self.matrix.0.iter(),
@@ -208,13 +210,48 @@ impl<'matrix> Iterator for CellIter<'matrix> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(cell) = self.cells.next() {
-            let coord = self.position;
-
             // increment position
-            self.position.x += 1;
-            self.position.x %= Matrix::WIDTH;
+            let coord = self.position;
+            self.position.grid_inc();
             return Some((coord, cell));
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn cell_iter() {
+        let mut matrix = Matrix::blank();
+        matrix[Coordinate::new(2, 0)] = Some(Color::Blue);
+        matrix[Coordinate::new(3, 1)] = Some(Color::Green);
+
+        let mut iter = CellIter {
+            position: Coordinate::origin(),
+            cells: matrix.0.iter(),
+        };
+
+        let first_five = (&mut iter).take(5).collect::<Vec<_>>();
+        assert_eq!(
+            first_five,
+            [
+                (Coordinate::new(0, 0), &None),
+                (Coordinate::new(1, 0), &None),
+                (Coordinate::new(2, 0), &Some(Color::Blue)),
+                (Coordinate::new(3, 0), &None),
+                (Coordinate::new(4, 0), &None),
+            ]
+        );
+
+        let other_item = (&mut iter).skip(8).next();
+        assert_eq!(
+            other_item,
+            Some((Coordinate::new(3, 1), &Some(Color::Green)))
+        );
+
+        assert!(iter.all(|(_, contents)| contents.is_none()));
     }
 }

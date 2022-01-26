@@ -1,4 +1,4 @@
-use crate::engine::{Engine, Matrix};
+use crate::engine::{self, Engine, Matrix};
 use cgmath::Vector2;
 use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas};
 
@@ -7,7 +7,7 @@ const BACKGROUND_COLOR: Color = Color::RGB(0x10, 0x10, 0x18);
 const PLACEHOLDER_1: Color = Color::RGB(0x66, 0x77, 0x77);
 const PLACEHOLDER_2: Color = Color::RGB(0x66, 0x77, 0x77);
 
-pub fn run(_engine: Engine) {
+pub fn run(engine: Engine) {
     let sdl = sdl2::init().expect("Failed to initialise SDL2");
 
     let mut canvas = {
@@ -37,11 +37,11 @@ pub fn run(_engine: Engine) {
             }
         }
 
-        draw(&mut canvas);
+        draw(&mut canvas, &engine);
     }
 }
 
-fn draw(canvas: &mut Canvas<sdl2::video::Window>) {
+fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
     canvas.set_draw_color(BACKGROUND_COLOR);
     canvas.clear();
 
@@ -135,10 +135,20 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>) {
     canvas.fill_rect(queue).unwrap();
     canvas.fill_rect(score).unwrap();
 
-    for cell_x in 0..Matrix::WIDTH {
-        for cell_y in 0..Matrix::HEIGHT {
-            todo!()
-        }
+    let matrix_origin = matrix.bottom_left();
+    let (matrix_width, matrix_height) = matrix.size();
+    let cell_width = matrix_width / Matrix::WIDTH as u32;
+    let cell_height = matrix_height / Matrix::HEIGHT as u32;
+    for (coord, cell) in engine.cells() {
+        let coord = coord.cast::<i32>().unwrap();
+        let cell_rect = Rect::new(
+            matrix_origin.x + coord.x * cell_width,
+            matrix_origin.y + coord.y * cell_height,
+            cell_width,
+            cell_height,
+        );
+        canvas._rect(cell_rect).unwrap();
     }
+
     canvas.present();
 }
