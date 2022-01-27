@@ -1,5 +1,5 @@
 use crate::engine::{self, Engine, Matrix};
-use cgmath::Vector2;
+use cgmath::{ElementWise, Vector2};
 use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas};
 
 const INIT_SIZE: Vector2<u32> = Vector2::new(1024, 1024);
@@ -136,18 +136,33 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
     canvas.fill_rect(score).unwrap();
 
     let matrix_origin = matrix.bottom_left();
-    let (matrix_width, matrix_height) = matrix.size();
-    let cell_width = matrix_width / Matrix::WIDTH as u32;
-    let cell_height = matrix_height / Matrix::HEIGHT as u32;
-    for (coord, cell) in engine.cells() {
-        let coord = coord.cast::<i32>().unwrap();
+    let matrix_dims = {
+        let (x, y) = matrix.size();
+        Vector2 { x, y }
+    };
+
+    let matrix_cells = Vector2::new(Matrix::WIDTH, Matrix::HEIGHT)
+        .cast::<u32>()
+        .unwrap();
+    for (coord, _cell) in engine.cells() {
+        let coord = coord.cast::<u32>().unwrap();
+        let this = coord
+            + Vector2::new(0, 1)
+                .mul_element_wise(matrix_dims)
+                .div_element_wise(matrix_cells);
+        let next = coord
+            + Vector2::new(1, 0)
+                .mul_element_wise(matrix_dims)
+                .div_element_wise(matrix_cells);
+
         let cell_rect = Rect::new(
-            matrix_origin.x + coord.x * cell_width,
-            matrix_origin.y + coord.y * cell_height,
-            cell_width,
-            cell_height,
+            matrix_origin.x + this.x as i32,
+            matrix_origin.y - this.y as i32,
+            next.x - this.x,
+            this.y - next.y,
         );
-        canvas._rect(cell_rect).unwrap();
+        canvas.set_draw_color(Color::WHITE);
+        canvas.draw_rect(cell_rect).unwrap();
     }
 
     canvas.present();
