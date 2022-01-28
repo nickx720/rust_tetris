@@ -1,3 +1,3 @@
 # Tetris using Rust
 
-Current path: `https://youtu.be/Ro-aPSb96RM?t=10890`
+Current path: `https://www.youtube.com/watch?v=QLA0LqfhaoE`

@@ -47,6 +47,13 @@ impl Engine {
         }
     }
 
+    pub fn with_matrix(matrix: Matrix) -> Self {
+        Self {
+            matrix,
+            ..Self::new()
+        }
+    }
+
     fn refill_bag(&mut self) {
         // Pull all pieces in bag
         // shuffle bag
@@ -162,7 +169,7 @@ impl Matrix {
         y * Self::WIDTH + x
     }
 
-    fn blank() -> Self {
+    pub fn blank() -> Self {
         Self([None; Self::SIZE])
     }
     fn is_clipping(&self, piece: &Piece) -> bool {

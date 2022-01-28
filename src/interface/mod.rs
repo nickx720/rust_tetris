@@ -1,6 +1,9 @@
 use crate::engine::{self, Engine, Matrix};
-use cgmath::{ElementWise, Vector2};
+use cgmath::{ElementWise, EuclideanSpace, Vector2};
+use render::ScreenColor;
 use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas};
+
+mod render;
 
 const INIT_SIZE: Vector2<u32> = Vector2::new(1024, 1024);
 const BACKGROUND_COLOR: Color = Color::RGB(0x10, 0x10, 0x18);
@@ -136,24 +139,23 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
     canvas.fill_rect(score).unwrap();
 
     let matrix_origin = matrix.bottom_left();
-    let matrix_dims = {
-        let (x, y) = matrix.size();
-        Vector2 { x, y }
-    };
+    let matrix_dims = Vector2::from(matrix.size());
 
     let matrix_cells = Vector2::new(Matrix::WIDTH, Matrix::HEIGHT)
         .cast::<u32>()
         .unwrap();
-    for (coord, _cell) in engine.cells() {
-        let coord = coord.cast::<u32>().unwrap();
-        let this = coord
-            + Vector2::new(0, 1)
-                .mul_element_wise(matrix_dims)
-                .div_element_wise(matrix_cells);
-        let next = coord
-            + Vector2::new(1, 0)
-                .mul_element_wise(matrix_dims)
-                .div_element_wise(matrix_cells);
+    for (coord, cell) in engine.cells() {
+        let cell_color = match cell {
+            Some(cell) => cell,
+            None => continue,
+        };
+        let coord = coord.to_vec().cast::<u32>().unwrap();
+        let this = (coord + Vector2::new(0, 1))
+            .mul_element_wise(matrix_dims)
+            .div_element_wise(matrix_cells);
+        let next = (coord + Vector2::new(1, 0))
+            .mul_element_wise(matrix_dims)
+            .div_element_wise(matrix_cells);
 
         let cell_rect = Rect::new(
             matrix_origin.x + this.x as i32,
@@ -161,8 +163,8 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
             next.x - this.x,
             this.y - next.y,
         );
-        canvas.set_draw_color(Color::WHITE);
-        canvas.draw_rect(cell_rect).unwrap();
+        canvas.set_draw_color(cell_color.screen_color());
+        canvas.fill_rect(cell_rect).unwrap();
     }
 
     canvas.present();
