@@ -2,8 +2,12 @@ use crate::engine::{self, Engine, Matrix};
 use cgmath::{ElementWise, EuclideanSpace, Vector2};
 use render::ScreenColor;
 use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas};
+use sub_rect::SubRect;
+
+use self::sub_rect::Align;
 
 mod render;
+mod sub_rect;
 
 const INIT_SIZE: Vector2<u32> = Vector2::new(1024, 1024);
 const BACKGROUND_COLOR: Color = Color::RGB(0x10, 0x10, 0x18);
@@ -48,95 +52,35 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
     canvas.set_draw_color(BACKGROUND_COLOR);
     canvas.clear();
 
+    let viewport = canvas.viewport();
+    let ui_square = SubRect::absolute(viewport, (1.0, 1.0), None);
+
+    let matrix = ui_square
+        .sub_rect((0.5, 1.0), None)
+        .sub_rect((7.0 / 8.0, 7.0 / 8.0), None);
+
+    let up_next = ui_square
+        .sub_rect((0.25, 0.25), Some((Align::Far, Align::Near)))
+        .sub_rect((0.75, 0.75), None);
+
+    let hold = ui_square
+        .sub_rect((0.25, 0.25), Some((Align::Near, Align::Near)))
+        .sub_rect((0.75, 0.75), None);
+
+    let queue = ui_square
+        .sub_rect((0.25, 0.75), Some((Align::Far, Align::Far)))
+        .sub_rect((5.0 / 8.0, 23.0 / 24.0), Some((Align::Center, Align::Near)));
+
+    let score = ui_square
+        .sub_rect((0.25, 11.0 / 16.0), Some((Align::Near, Align::Far)))
+        .sub_rect((7.0 / 8.0, 8.0 / 11.0), Some((Align::Center, Align::Near)));
+
     // Draw graphics
-    let ui_square = {
-        let Vector2 { x, y } = Vector2::from(canvas.viewport().size())
-            .cast::<i32>()
-            .unwrap();
-        if x > y {
-            let margin = (x / 2) - (y / 2);
-            Rect::new(margin, 0, y as u32, y as u32)
-        } else {
-            let margin = (y / 2) - (x / 2);
-            Rect::new(0, margin, x as u32, x as u32)
-        }
-    };
-
-    let matrix = {
-        let mut middle_section = ui_square;
-        middle_section.set_width(middle_section.width() / 2);
-        middle_section.center_on(ui_square.center());
-
-        let mut matrix = middle_section;
-        matrix.resize(
-            (matrix.width() as f32 * (7.0 / 8.0)) as _,
-            (matrix.height() as f32 * (7.0 / 8.0)) as _,
-        );
-        matrix.center_on(middle_section.center());
-        matrix
-    };
-
-    let up_next = {
-        let mut bounding_box = ui_square;
-        let quarter = ui_square.width() / 4;
-        bounding_box.resize(quarter, quarter);
-        bounding_box.offset(3 * quarter as i32, 0);
-
-        let mut rect = bounding_box;
-        let inner_dim = bounding_box.width() * 3 / 4;
-        rect.resize(inner_dim, inner_dim);
-        rect.center_on(bounding_box.center());
-        rect
-    };
-
-    let hold = {
-        let mut bounding_box = ui_square;
-        let quarter = ui_square.width() / 4;
-        bounding_box.resize(quarter, quarter);
-
-        let mut rect = bounding_box;
-        let inner_dim = bounding_box.width() * 3 / 4;
-        rect.resize(inner_dim, inner_dim);
-        rect.center_on(bounding_box.center());
-        rect
-    };
-
-    let queue = {
-        let mut bounding_box = ui_square;
-        let quarter = ui_square.width() / 4;
-        bounding_box.resize(quarter, 3 * quarter);
-        bounding_box.offset(3 * quarter as i32, quarter as _);
-
-        let mut rect = bounding_box;
-        let inner_width = bounding_box.width() * 5 / 8;
-        let inner_height = bounding_box.height() * 23 / 24;
-        rect.resize(inner_width, inner_height);
-        rect.center_on(bounding_box.center());
-        rect.set_y(bounding_box.top());
-        rect
-    };
-
-    let score = {
-        let mut bounding_box = ui_square;
-        let quarter = ui_square.width() / 4;
-        let sixteenth = quarter / 4;
-        bounding_box.resize(quarter, 2 * quarter);
-        bounding_box.offset(0, 5 * sixteenth as i32);
-
-        let mut rect = bounding_box;
-        let inner_width = bounding_box.width() * 7 / 8;
-        rect.set_width(inner_width);
-        rect.center_on(bounding_box.center());
-        rect.set_y(bounding_box.top());
-        rect
-    };
-
     canvas.set_draw_color(PLACEHOLDER_1);
-    canvas.fill_rect(matrix).unwrap();
-    canvas.fill_rect(up_next).unwrap();
-    canvas.fill_rect(hold).unwrap();
-    canvas.fill_rect(queue).unwrap();
-    canvas.fill_rect(score).unwrap();
+
+    for subrect in [&matrix, &up_next, &hold, &queue, &score] {
+        canvas.fill_rect(Rect::from(subrect)).unwrap();
+    }
 
     let matrix_origin = matrix.bottom_left();
     let matrix_dims = Vector2::from(matrix.size());

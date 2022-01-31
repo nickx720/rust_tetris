@@ -1,3 +1,4 @@
 # Tetris using Rust
 
-Current path: `https://www.youtube.com/watch?v=QLA0LqfhaoE`
+Todo: Check alignment
+Current path: `https://youtu.be/QLA0LqfhaoE?t=773`
