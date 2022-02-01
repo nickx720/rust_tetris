@@ -1,6 +1,9 @@
 use cgmath::EuclideanSpace;
 use geometry::GridIncrement;
-use std::ops::{Index, IndexMut};
+use std::{
+    ops::{Index, IndexMut},
+    time::Duration,
+};
 
 use rand::{
     prelude::{SliceRandom, ThreadRng},
@@ -35,6 +38,7 @@ pub struct Engine {
     bag: Vec<PieceKind>,
     rng: ThreadRng,
     cursor: Option<Piece>,
+    level: u8,
 }
 
 impl Engine {
@@ -44,6 +48,7 @@ impl Engine {
             bag: Vec::new(),
             rng: thread_rng(),
             cursor: None,
+            level: 1,
         }
     }
 
@@ -133,6 +138,11 @@ impl Engine {
             position: Coordinate::origin(),
             cells: self.matrix.0.iter(),
         }
+    }
+    pub fn drop_time(&self) -> Duration {
+        let level_index = self.level - 1;
+        let seconds_per_line = (0.8 - ((self.level - 1) as f32 * 0.007)).powi(level_index as _);
+        Duration::from_secs_f32(seconds_per_line)
     }
 }
 
