@@ -10,7 +10,7 @@ use rand::{
     thread_rng,
 };
 
-use self::piece::{Kind as PieceKind, Piece};
+use self::piece::{Kind as PieceKind, Piece, Rotation};
 
 mod geometry;
 mod piece;
@@ -97,7 +97,17 @@ impl Engine {
         if self.matrix.is_clipping(&new) {
             return Err(());
         }
-        Ok(self.cursor = Some(new))
+        self.cursor = Some(new);
+        Ok(())
+    }
+
+    pub fn DEBUG_test_cursor_location(&mut self, kind: PieceKind, position: Offset) {
+        let piece = Piece {
+            kind,
+            rotation: Rotation::N,
+            position,
+        };
+        self.cursor = Some(piece)
     }
 
     fn tick_down(&mut self) {

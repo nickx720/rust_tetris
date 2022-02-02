@@ -1,4 +1,4 @@
-use crate::engine::{self, Engine, Matrix};
+use crate::engine::{Engine, Matrix};
 use cgmath::{ElementWise, EuclideanSpace, Vector2};
 use render::ScreenColor;
 use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas};
@@ -14,9 +14,17 @@ const BACKGROUND_COLOR: Color = Color::RGB(0x10, 0x10, 0x18);
 const PLACEHOLDER_1: Color = Color::RGB(0x66, 0x77, 0x77);
 const PLACEHOLDER_2: Color = Color::RGB(0x66, 0x77, 0x77);
 
+struct Tick;
+struct LockdownTick;
+
 pub fn run(engine: Engine) {
     let sdl = sdl2::init().expect("Failed to initialise SDL2");
 
+    let event_subsytem = sdl.event().expect("Failed to acquire event subsystem");
+    event_subsytem.register_custom_event::<Tick>().unwrap();
+    event_subsytem
+        .register_custom_event::<LockdownTick>()
+        .unwrap();
     let mut canvas = {
         let video = sdl.video().expect("Failed to acquire display");
 
@@ -36,10 +44,19 @@ pub fn run(engine: Engine) {
 
     let mut events = sdl.event_pump().expect("Failed to get event loop");
 
+    event_subsytem.push_custom_event(Tick).unwrap();
+    event_subsytem.push_custom_event(LockdownTick).unwrap();
+
     loop {
         for event in events.poll_iter() {
             match event {
                 Event::Quit { .. } => return,
+                Event::User { .. } if event.as_user_event_type::<Tick>().is_some() => {
+                    println!("Found tick event")
+                }
+                Event::User { .. } if event.as_user_event_type::<LockdownTick>().is_some() => {
+                    println!("Found lockdown event")
+                }
                 _ => {}
             }
         }
@@ -83,7 +100,7 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
     }
 
     let matrix_origin = matrix.bottom_left();
-    let matrix_dims = Vector2::from(matrix.size());
+    let matrix_dims = matrix.size();
 
     let matrix_cells = Vector2::new(Matrix::WIDTH, Matrix::HEIGHT)
         .cast::<u32>()
