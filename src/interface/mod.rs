@@ -1,7 +1,7 @@
-use crate::engine::{Engine, Matrix};
-use cgmath::{ElementWise, EuclideanSpace, Vector2};
+use crate::engine::{Color as SemanticColor, Engine, Matrix};
+use cgmath::{ElementWise, EuclideanSpace, Point2, Vector2};
 use render::ScreenColor;
-use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas};
+use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas, video::Window};
 use sub_rect::SubRect;
 
 use self::sub_rect::Align;
@@ -99,34 +99,51 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
         canvas.fill_rect(Rect::from(subrect)).unwrap();
     }
 
-    let matrix_origin = matrix.bottom_left();
-    let matrix_dims = matrix.size();
+    let mut cell_ctx = CellDrawContext {
+        origin: matrix.bottom_left(),
+        dims: matrix.size(),
+        canvas,
+    };
 
-    let matrix_cells = Vector2::new(Matrix::WIDTH, Matrix::HEIGHT)
-        .cast::<u32>()
-        .unwrap();
     for (coord, cell) in engine.cells() {
+        cell_ctx.draw_cells(coord, cell);
+    }
+
+    //    for (coord, cell) in engine.cursor_cells() {}
+
+    canvas.present();
+}
+
+struct CellDrawContext<'canvas> {
+    origin: Point2<i32>,
+    dims: Vector2<u32>,
+    canvas: &'canvas mut Canvas<Window>,
+}
+
+// '_ takes the same life time as CellDrawContext.canvas
+impl CellDrawContext<'_> {
+    const CELL_COUNT: Vector2<u32> = Vector2::new(Matrix::WIDTH as u32, Matrix::HEIGHT as u32);
+
+    fn draw_cells(&mut self, coord: Point2<usize>, cell: Option<SemanticColor>) {
         let cell_color = match cell {
             Some(cell) => cell,
-            None => continue,
+            None => return,
         };
         let coord = coord.to_vec().cast::<u32>().unwrap();
         let this = (coord + Vector2::new(0, 1))
-            .mul_element_wise(matrix_dims)
-            .div_element_wise(matrix_cells);
+            .mul_element_wise(self.dims)
+            .div_element_wise(Self::CELL_COUNT);
         let next = (coord + Vector2::new(1, 0))
-            .mul_element_wise(matrix_dims)
-            .div_element_wise(matrix_cells);
+            .mul_element_wise(self.dims)
+            .div_element_wise(Self::CELL_COUNT);
 
         let cell_rect = Rect::new(
-            matrix_origin.x + this.x as i32,
-            matrix_origin.y - this.y as i32,
+            self.origin.x + this.x as i32,
+            self.origin.y - this.y as i32,
             next.x - this.x,
             this.y - next.y,
         );
-        canvas.set_draw_color(cell_color.screen_color());
-        canvas.fill_rect(cell_rect).unwrap();
+        self.canvas.set_draw_color(cell_color.screen_color());
+        self.canvas.fill_rect(cell_rect).unwrap();
     }
-
-    canvas.present();
 }

@@ -13,7 +13,7 @@ use rand::{
 use self::piece::{Kind as PieceKind, Piece, Rotation};
 
 mod geometry;
-mod piece;
+pub mod piece;
 
 type Coordinate = cgmath::Point2<usize>;
 type Offset = cgmath::Vector2<isize>;
@@ -233,10 +233,10 @@ pub struct CellIter<'matrix> {
 }
 
 impl<'matrix> Iterator for CellIter<'matrix> {
-    type Item = (Coordinate, &'matrix Option<Color>);
+    type Item = (Coordinate, Option<Color>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(cell) = self.cells.next() {
+        if let Some(&cell) = self.cells.next() {
             // increment position
             let coord = self.position;
             self.position.grid_inc();
@@ -265,18 +265,18 @@ mod test {
         assert_eq!(
             first_five,
             [
-                (Coordinate::new(0, 0), &None),
-                (Coordinate::new(1, 0), &None),
-                (Coordinate::new(2, 0), &Some(Color::Blue)),
-                (Coordinate::new(3, 0), &None),
-                (Coordinate::new(4, 0), &None),
+                (Coordinate::new(0, 0), None),
+                (Coordinate::new(1, 0), None),
+                (Coordinate::new(2, 0), Some(Color::Blue)),
+                (Coordinate::new(3, 0), None),
+                (Coordinate::new(4, 0), None),
             ]
         );
 
         let other_item = (&mut iter).skip(8).next();
         assert_eq!(
             other_item,
-            Some((Coordinate::new(3, 1), &Some(Color::Green)))
+            Some((Coordinate::new(3, 1), Some(Color::Green)))
         );
 
         assert!(iter.all(|(_, contents)| contents.is_none()));
