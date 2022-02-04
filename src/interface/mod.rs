@@ -57,6 +57,15 @@ pub fn run(engine: Engine) {
                 Event::User { .. } if event.as_user_event_type::<LockdownTick>().is_some() => {
                     println!("Found lockdown event")
                 }
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => match keycode{
+                    Key::Right => drop(engine.move_cursor(MoveKind::Right)),
+                    Key::Left => drop(engine.move_cursor(MoveKind::Left)),
+                    Key::Up =>drop(engine.move_cursor())
+                    Key::Down =>
+                    _ => {}
+                }
                 _ => {}
             }
         }
@@ -106,10 +115,14 @@ fn draw(canvas: &mut Canvas<sdl2::video::Window>, engine: &Engine) {
     };
 
     for (coord, cell) in engine.cells() {
-        cell_ctx.draw_cells(coord, cell);
+        cell_ctx.try_draw_cell(coord, cell);
     }
 
-    //    for (coord, cell) in engine.cursor_cells() {}
+    if let Some((cursor_cells, cursor_color)) = engine.cursor_info() {
+        for coord in cursor_cells {
+            cell_ctx.draw_cells(coord, cursor_color)
+        }
+    }
 
     canvas.present();
 }
@@ -124,11 +137,15 @@ struct CellDrawContext<'canvas> {
 impl CellDrawContext<'_> {
     const CELL_COUNT: Vector2<u32> = Vector2::new(Matrix::WIDTH as u32, Matrix::HEIGHT as u32);
 
-    fn draw_cells(&mut self, coord: Point2<usize>, cell: Option<SemanticColor>) {
-        let cell_color = match cell {
+    fn try_draw_cell(&mut self, coord: Point2<usize>, cell: Option<SemanticColor>) {
+        let cell = match cell {
             Some(cell) => cell,
             None => return,
         };
+        self.draw_cells(coord, cell);
+    }
+
+    fn draw_cells(&mut self, coord: Point2<usize>, color: SemanticColor) {
         let coord = coord.to_vec().cast::<u32>().unwrap();
         let this = (coord + Vector2::new(0, 1))
             .mul_element_wise(self.dims)
@@ -143,7 +160,7 @@ impl CellDrawContext<'_> {
             next.x - this.x,
             this.y - next.y,
         );
-        self.canvas.set_draw_color(cell_color.screen_color());
+        self.canvas.set_draw_color(color.screen_color());
         self.canvas.fill_rect(cell_rect).unwrap();
     }
 }

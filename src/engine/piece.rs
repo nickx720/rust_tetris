@@ -10,7 +10,7 @@ pub(super) struct Piece {
 }
 
 impl Piece {
-    const CELL_COUNT: usize = 4;
+    pub const CELL_COUNT: usize = 4;
 
     pub fn moved_by(&self, offset: Offset) -> Self {
         Self {

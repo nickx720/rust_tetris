@@ -86,7 +86,7 @@ impl Engine {
         }
     }
 
-    fn move_cursor(&mut self, kind: MoveKind) -> Result<(), ()> // Ok(()) , Err(())
+    pub fn move_cursor(&mut self, kind: MoveKind) -> Result<(), ()> // Ok(()) , Err(())
     {
         let cursor = match self.cursor.as_mut() {
             Some(cursor) => cursor,
@@ -99,6 +99,11 @@ impl Engine {
         }
         self.cursor = Some(new);
         Ok(())
+    }
+
+    pub fn cursor_info(&self) -> Option<([Coordinate; Piece::CELL_COUNT], Color)> {
+        let cursor = self.cursor?;
+        Some((cursor.cells().unwrap(), cursor.kind.color()))
     }
 
     pub fn DEBUG_test_cursor_location(&mut self, kind: PieceKind, position: Offset) {
