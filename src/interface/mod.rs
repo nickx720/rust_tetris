@@ -1,7 +1,11 @@
-use crate::engine::{Color as SemanticColor, Engine, Matrix};
+use std::time::Duration;
+
+use crate::engine::{Color as SemanticColor, Engine, Matrix, MoveKind};
 use cgmath::{ElementWise, EuclideanSpace, Point2, Vector2};
 use render::ScreenColor;
-use sdl2::{event::Event, pixels::Color, rect::Rect, render::Canvas, video::Window};
+use sdl2::{
+    event::Event, keyboard::Keycode, pixels::Color, rect::Rect, render::Canvas, video::Window,
+};
 use sub_rect::SubRect;
 
 use self::sub_rect::Align;
@@ -16,8 +20,11 @@ const PLACEHOLDER_2: Color = Color::RGB(0x66, 0x77, 0x77);
 
 struct Tick;
 struct LockdownTick;
+struct SoftDropTick;
 
-pub fn run(engine: Engine) {
+struct Sleep(Duration);
+
+pub fn run(mut engine: Engine) {
     let sdl = sdl2::init().expect("Failed to initialise SDL2");
 
     let event_subsytem = sdl.event().expect("Failed to acquire event subsystem");
@@ -47,30 +54,59 @@ pub fn run(engine: Engine) {
     event_subsytem.push_custom_event(Tick).unwrap();
     event_subsytem.push_custom_event(LockdownTick).unwrap();
 
+    let mut dirty: bool = true;
     loop {
         for event in events.poll_iter() {
             match event {
                 Event::Quit { .. } => return,
                 Event::User { .. } if event.as_user_event_type::<Tick>().is_some() => {
-                    println!("Found tick event")
+                    println!("Found tick event");
+                    dirty = true;
                 }
                 Event::User { .. } if event.as_user_event_type::<LockdownTick>().is_some() => {
-                    println!("Found lockdown event")
+                    println!("Found lockdown event");
+                    dirty = true;
                 }
                 Event::KeyDown {
                     keycode: Some(key), ..
-                } => match keycode{
-                    Key::Right => drop(engine.move_cursor(MoveKind::Right)),
-                    Key::Left => drop(engine.move_cursor(MoveKind::Left)),
-                    Key::Up =>drop(engine.move_cursor())
-                    Key::Down =>
-                    _ => {}
+                } => {
+                    if let Ok(input) = Input::try_from(key) {
+                        match input {
+                            Input::Move(kind) => drop(engine.move_cursor(kind)),
+                            Input::HardDrop => engine.hard_drop(),
+                            Input::SoftDrop => todo!("Soft drop ticks"),
+                        }
+                        dirty = true;
+                    }
                 }
                 _ => {}
             }
         }
 
-        draw(&mut canvas, &engine);
+        if dirty {
+            draw(&mut canvas, &engine);
+            dirty = false;
+        }
+    }
+}
+
+enum Input {
+    Move(MoveKind),
+    SoftDrop,
+    HardDrop,
+}
+
+impl TryFrom<Keycode> for Input {
+    type Error = ();
+
+    fn try_from(key: Keycode) -> Result<Self, Self::Error> {
+        Ok(match key {
+            Keycode::Right => Self::Move(MoveKind::Right),
+            Keycode::Left => Self::Move(MoveKind::Left),
+            Keycode::Up => Self::HardDrop,
+            Keycode::Down => Self::SoftDrop,
+            _ => return Err(()),
+        })
     }
 }
 

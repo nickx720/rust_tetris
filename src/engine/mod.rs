@@ -120,7 +120,7 @@ impl Engine {
         self.cursor = Some(self.ticked_down_cursor().unwrap());
     }
 
-    fn cursor_has_hit_buttom(&self) -> bool {
+    pub fn cursor_has_hit_buttom(&self) -> bool {
         self.cursor.is_some() && self.ticked_down_cursor().is_none()
     }
 
@@ -137,7 +137,7 @@ impl Engine {
         }
     }
 
-    fn hard_drop(&mut self) {
+    pub fn hard_drop(&mut self) {
         // move cursor all the way down
         while let Some(new) = self.ticked_down_cursor() {
             self.cursor = Some(new);
