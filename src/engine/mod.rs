@@ -202,9 +202,9 @@ impl Matrix {
             Some(value) => value,
             None => return true,
         };
-        cells
-            .into_iter()
-            .any(|coord| !Matrix::on_matrix(coord) || self[coord].is_some())
+        cells.into_iter().any(|coord| {
+            !Matrix::valid_coord(coord) || (Matrix::on_matrix(coord) || self[coord].is_some())
+        })
     }
 
     fn is_placeable(&self, piece: &Piece) -> bool {
@@ -215,6 +215,15 @@ impl Matrix {
         cells
             .into_iter()
             .all(|coord| Matrix::on_matrix(coord) && self[coord].is_none())
+    }
+
+    fn line_clear(&mut self, animation: impl FnMut(&[usize])) {
+        let lines: Vec<usize> = todo!("identify full lines");
+        animation(lines.as_slice());
+        self.matrix.clear_lines(lines.as_slice());
+    }
+    fn clear_lines(&mut self, indices: &[usize]) {
+        todo!("clear lines");
     }
 }
 

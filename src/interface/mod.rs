@@ -22,8 +22,6 @@ struct Tick;
 struct LockdownTick;
 struct SoftDropTick;
 
-struct Sleep(Duration);
-
 pub fn run(mut engine: Engine) {
     let sdl = sdl2::init().expect("Failed to initialise SDL2");
 
@@ -55,6 +53,7 @@ pub fn run(mut engine: Engine) {
     event_subsytem.push_custom_event(LockdownTick).unwrap();
 
     let mut dirty: bool = true;
+    let mut lock_down = false;
     loop {
         for event in events.poll_iter() {
             match event {
@@ -83,6 +82,7 @@ pub fn run(mut engine: Engine) {
             }
         }
 
+        if lock_down {}
         if dirty {
             draw(&mut canvas, &engine);
             dirty = false;
