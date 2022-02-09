@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![feature(array_chunks)]
 use engine::{piece::Kind as PieceKind, Color, Engine, Matrix};
 
 mod engine;

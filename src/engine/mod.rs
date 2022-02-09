@@ -2,6 +2,7 @@ use cgmath::EuclideanSpace;
 use geometry::GridIncrement;
 use std::{
     ops::{Index, IndexMut},
+    slice::ArrayChunks,
     time::Duration,
 };
 
@@ -215,6 +216,14 @@ impl Matrix {
         cells
             .into_iter()
             .all(|coord| Matrix::on_matrix(coord) && self[coord].is_none())
+    }
+
+    fn lines(&self) -> ArrayChunks<'_, Option<Color>, { Self::WIDTH }> {
+        self.0.array_chunks()
+    }
+
+    fn full_lines(&self) -> Vec<usize> {
+        todo!()
     }
 
     fn line_clear(&mut self, animation: impl FnMut(&[usize])) {
